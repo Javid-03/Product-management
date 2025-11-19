@@ -1,4 +1,4 @@
-# Product Importer - Acme Inc.
+# Product Importer
 
 A scalable web application for importing and managing products from CSV files (supports up to 500,000 records). Built with FastAPI, Celery, PostgreSQL, and Redis for handling large datasets efficiently.
 
@@ -17,7 +17,6 @@ A scalable web application for importing and managing products from CSV files (s
 - **Task Queue**: Celery with Redis broker
 - **Database**: PostgreSQL with SQLAlchemy ORM
 - **Frontend**: HTML/CSS/JavaScript with HTMX for dynamic updates
-- **Deployment**: Configured for Render.com
 
 ## Setup
 
