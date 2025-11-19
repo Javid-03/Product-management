@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Product Importer</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="https://unpkg.com/htmx.org@1.9.10" defer></script>
+    <script src="/static/main.js" defer></script>
+    <style>
+      :root {
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: #f6f7fb;
+        color: #111;
+      }
+      body {
+        margin: 0;
+        padding: 0;
+      }
+      header {
+        background: #111a2c;
+        color: #fff;
+        padding: 24px;
+      }
+      h1 {
+        margin: 0;
+        font-size: 1.8rem;
+      }
+      main {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        gap: 20px;
+        padding: 24px;
+      }
+      .card {
+        background: #fff;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 10px 25px rgba(15, 23, 42, 0.07);
+      }
+      .progress {
+        width: 100%;
+        background: #e2e8f0;
+        height: 16px;
+        border-radius: 999px;
+        overflow: hidden;
+        margin: 12px 0;
+      }
+      .bar {
+        height: 100%;
+        width: 0%;
+        background: linear-gradient(90deg, #2563eb, #22d3ee);
+        transition: width 0.25s ease;
+      }
+      form {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      label {
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: #475569;
+      }
+      input[type="text"],
+      input[type="number"],
+      input[type="url"],
+      select,
+      textarea {
+        padding: 8px 10px;
+        border-radius: 6px;
+        border: 1px solid #cbd5f5;
+        font-size: 0.95rem;
+      }
+      textarea {
+        resize: vertical;
+        min-height: 60px;
+      }
+      button {
+        background: #2563eb;
+        color: #fff;
+        border: none;
+        border-radius: 6px;
+        padding: 10px 14px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      button.secondary {
+        background: #0f172a;
+      }
+      button.danger {
+        background: #dc2626;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      th,
+      td {
+        border-bottom: 1px solid #e2e8f0;
+        padding: 8px;
+        text-align: left;
+        font-size: 0.95rem;
+      }
+      .inline-form {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 8px;
+        align-items: center;
+      }
+      .row-actions {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+      .status-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: #f1f5f9;
+        border-radius: 999px;
+        padding: 6px 12px;
+        font-size: 0.85rem;
+      }
+      .status-pill.success {
+        background: #dcfce7;
+        color: #15803d;
+      }
+      .status-pill.error {
+        background: #fee2e2;
+        color: #b91c1c;
+      }
+      .two-column {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Product Importer</h1>
+      <p>Upload, monitor, and manage up to 500k products with real-time feedback.</p>
+    </header>
+
+    <main>
+      <section class="card" id="uploader">
+        <h2>Upload CSV</h2>
+        <p>Select a UTF-8 CSV with headers: sku, name, description, price.</p>
+        <input type="file" id="csvFile" accept=".csv" />
+        <div class="row-actions">
+          <button id="uploadBtn">Upload</button>
+          <button id="retryBtn" class="secondary" hidden>Retry last upload</button>
+          <button id="stopPollingBtn" class="secondary" hidden>Stop polling</button>
+        </div>
+        <div class="progress">
+          <div id="bar" class="bar"></div>
+        </div>
+        <div class="status-pill" id="status">Idle</div>
+        <div id="task-details"></div>
+      </section>
+
+      <section class="card" id="create-product">
+        <h2>Create / Upsert Product</h2>
+        <form
+          id="createProductForm"
+          hx-post="/product/create"
+          hx-target="#products-list"
+          hx-swap="outerHTML"
+          hx-include="#productFilters"
+        >
+          <label>SKU <input type="text" name="sku" required placeholder="ABC-123" /></label>
+          <label>Name <input type="text" name="name" placeholder="Product name" /></label>
+          <label>Price (USD) <input type="text" name="price" placeholder="19.99" /></label>
+          <label>Description <textarea name="description" placeholder="Short summary"></textarea></label>
+          <label>Status
+            <select name="active">
+              <option value="true" selected>Active</option>
+              <option value="false">Inactive</option>
+            </select>
+          </label>
+          <div class="row-actions">
+            <button type="submit">Save product</button>
+            <button type="reset" class="secondary">Reset</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="card" id="product-filters">
+        <h2>Filter Products</h2>
+        <form
+          id="productFilters"
+          hx-get="/products-fragment"
+          hx-target="#products-list"
+          hx-trigger="change delay:350ms, submit"
+        >
+          <label>SKU <input type="text" name="filter_sku" placeholder="Contains..." /></label>
+          <label>Name <input type="text" name="filter_name" placeholder="Contains..." /></label>
+          <label>Description <input type="text" name="filter_description" placeholder="Contains..." /></label>
+          <label>Status
+            <select name="filter_active">
+              <option value="all">All</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+            </select>
+          </label>
+          <label>Page size
+            <select name="per_page">
+              <option value="20">20</option>
+              <option value="50">50</option>
+              <option value="100">100</option>
+              <option value="200">200</option>
+            </select>
+          </label>
+          <div class="row-actions">
+            <button type="submit">Apply</button>
+            <button type="button" class="secondary" id="resetFilters">Reset</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="card" id="products-section">
+        <div class="row-actions" style="justify-content: space-between">
+          <h2>Products</h2>
+          <form
+            id="deleteAllForm"
+            hx-post="/products/delete-all"
+            hx-target="#products-list"
+            hx-swap="outerHTML"
+            hx-confirm="Delete all products? This cannot be undone."
+            hx-include="#productFilters"
+          >
+            <input type="hidden" name="confirm" value="true" />
+            <button type="submit" class="danger">Delete All</button>
+          </form>
+        </div>
+        <div
+          id="products-list"
+          hx-get="/products-fragment"
+          hx-trigger="load"
+          hx-target="this"
+        ></div>
+      </section>
+
+      <section class="card" id="webhooks-section">
+        <h2>Webhooks</h2>
+        <form
+          id="webhooksForm"
+          hx-post="/webhooks/create"
+          hx-target="#webhooks-list"
+          hx-swap="outerHTML"
+        >
+          <label>URL <input type="url" name="url" required placeholder="https://example.com/webhook" /></label>
+          <label>Event
+            <input type="text" name="event" required placeholder="product.imported" />
+          </label>
+          <label>Status
+            <select name="enabled">
+              <option value="true">Enabled</option>
+              <option value="false">Disabled</option>
+            </select>
+          </label>
+          <button type="submit">Add webhook</button>
+        </form>
+        <div
+          id="webhooks-list"
+          hx-get="/webhooks-fragment"
+          hx-trigger="load"
+          hx-target="this"
+        ></div>
+      </section>
+    </main>
+  </body>
+</html>

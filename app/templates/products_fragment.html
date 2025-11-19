@@ -1,0 +1,102 @@
+<div class="products-fragment">
+  <p>
+    Showing page {{ page }} of {{ pages }} —
+    <strong>{{ total }}</strong> products
+  </p>
+  <table>
+    <thead>
+      <tr>
+        <th>SKU</th>
+        <th>Name</th>
+        <th>Description</th>
+        <th>Price</th>
+        <th>Status</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% if products %}
+        {% for p in products %}
+          <tr>
+            <td colspan="6">
+              <form
+                class="inline-form"
+                hx-post="/product/{{ p.id }}/update"
+                hx-target="#products-list"
+                hx-swap="outerHTML"
+                hx-include="#productFilters"
+              >
+                <input type="hidden" name="page" value="{{ page }}" />
+                <input type="hidden" name="per_page" value="{{ filters.per_page }}" />
+                <input type="hidden" name="filter_sku" value="{{ filters.filter_sku }}" />
+                <input type="hidden" name="filter_name" value="{{ filters.filter_name }}" />
+                <input type="hidden" name="filter_description" value="{{ filters.filter_description }}" />
+                <input type="hidden" name="filter_active" value="{{ filters.filter_active }}" />
+
+                <label>SKU
+                  <input type="text" name="sku" value="{{ p.sku }}" required />
+                </label>
+                <label>Name
+                  <input type="text" name="name" value="{{ p.name or '' }}" />
+                </label>
+                <label>Description
+                  <input type="text" name="description" value="{{ p.description or '' }}" />
+                </label>
+                <label>Price (USD)
+                  <input type="text" name="price" value="{{ ('%.2f' % (p.price_cents / 100)) if p.price_cents is not none else '' }}" />
+                </label>
+                <label>Status
+                  <select name="active">
+                    <option value="true" {% if p.active %}selected{% endif %}>Active</option>
+                    <option value="false" {% if not p.active %}selected{% endif %}>Inactive</option>
+                  </select>
+                </label>
+                <div class="row-actions">
+                  <button type="submit">Save</button>
+                  <button
+                    type="button"
+                    class="danger"
+                    hx-post="/product/{{ p.id }}/delete"
+                    hx-target="#products-list"
+                    hx-swap="outerHTML"
+                    hx-confirm="Delete this product?"
+                    hx-include="#productFilters"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </form>
+            </td>
+          </tr>
+        {% endfor %}
+      {% else %}
+        <tr>
+          <td colspan="6">No products match the current filters.</td>
+        </tr>
+      {% endif %}
+    </tbody>
+  </table>
+  <div class="row-actions" style="margin-top: 12px;">
+    <span>Page {{ page }} of {{ pages }}</span>
+    <div>
+      {% if page > 1 %}
+        <button
+          hx-get="/products-fragment?page={{ page - 1 }}&per_page={{ filters.per_page }}&filter_sku={{ filters.filter_sku|urlencode }}&filter_name={{ filters.filter_name|urlencode }}&filter_description={{ filters.filter_description|urlencode }}&filter_active={{ filters.filter_active }}"
+          hx-target="#products-list"
+          hx-swap="outerHTML"
+        >
+          Previous
+        </button>
+      {% endif %}
+      {% if page < pages %}
+        <button
+          hx-get="/products-fragment?page={{ page + 1 }}&per_page={{ filters.per_page }}&filter_sku={{ filters.filter_sku|urlencode }}&filter_name={{ filters.filter_name|urlencode }}&filter_description={{ filters.filter_description|urlencode }}&filter_active={{ filters.filter_active }}"
+          hx-target="#products-list"
+          hx-swap="outerHTML"
+        >
+          Next
+        </button>
+      {% endif %}
+    </div>
+  </div>
+</div>

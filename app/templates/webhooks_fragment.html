@@ -1,0 +1,69 @@
+<div class="webhooks-fragment">
+  {% if webhooks %}
+    <table>
+      <thead>
+        <tr>
+          <th>URL</th>
+          <th>Event</th>
+          <th>Status</th>
+          <th>Test</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for hook in webhooks %}
+          <tr>
+            <td colspan="4">
+              <form
+                class="inline-form"
+                hx-post="/webhooks/{{ hook.id }}/update"
+                hx-target="#webhooks-list"
+                hx-swap="outerHTML"
+              >
+                <label>URL
+                  <input type="url" name="url" value="{{ hook.url }}" required />
+                </label>
+                <label>Event
+                  <input type="text" name="event" value="{{ hook.event }}" required />
+                </label>
+                <label>Status
+                  <select name="enabled">
+                    <option value="true" {% if hook.enabled %}selected{% endif %}>Enabled</option>
+                    <option value="false" {% if not hook.enabled %}selected{% endif %}>Disabled</option>
+                  </select>
+                </label>
+                <div class="row-actions">
+                  <button type="submit">Save</button>
+                  <button
+                    type="button"
+                    class="danger"
+                    hx-post="/webhooks/{{ hook.id }}/delete"
+                    hx-target="#webhooks-list"
+                    hx-swap="outerHTML"
+                    hx-confirm="Delete this webhook?"
+                  >
+                    Delete
+                  </button>
+                  <button
+                    type="button"
+                    class="secondary"
+                    hx-post="/webhooks/test/{{ hook.id }}"
+                    hx-target="#webhook-status-{{ hook.id }}"
+                    hx-swap="innerHTML"
+                  >
+                    Test
+                  </button>
+                </div>
+              </form>
+              <div id="webhook-status-{{ hook.id }}" class="status-pill" style="margin-top:6px;">
+                {% if hook.enabled %}Ready{% else %}Disabled{% endif %}
+              </div>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p>No webhooks configured yet.</p>
+  {% endif %}
+</div>
+
